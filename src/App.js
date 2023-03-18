@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Add useEffect import
+
 import "./App.css";
 import {
   Button,
@@ -17,10 +18,30 @@ function App() {
   const [posts, setPosts] = useState([]);
   const [postContent, setPostContent] = useState("");
 
-  const handlePostSubmit = () => {
+  const API_URL = "http://localhost:3001"; // Replace 5000 with the port number your server is running on
+
+
+  useEffect(() => {
+    fetchTweets();
+  }, []);
+
+  const fetchTweets = async () => {
+    const response = await fetch(`${API_URL}/tweets`);
+    const data = await response.json();
+    setPosts(data);
+  };
+
+  const handlePostSubmit = async () => {
     if (postContent) {
+      const response = await fetch(`${API_URL}/tweets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: postContent, timestamp: new Date() }),
+      });
+      const data = await response.json();
       setPosts([
         {
+          id: data.id,
           content: postContent,
           timestamp: new Date(),
           likes: 0,
@@ -33,19 +54,38 @@ function App() {
     }
   };
 
-  const handleLike = (index) => {
-    const updatedPosts = [...posts];
-    updatedPosts[index].likes += 1;
-    setPosts(updatedPosts);
-  };
 
-  const handleRetweet = (index) => {
+const handleLike = async (index) => {
+    const post = posts[index];
+    const response = await fetch(`${API_URL}/tweets/${post.id}/like`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ likes: post.likes }),
+    });
+    const data = await response.json();
     const updatedPosts = [...posts];
-    updatedPosts[index].retweets += 1;
+    updatedPosts[index] = { ...post, ...data };
     setPosts(updatedPosts);
-  };
+};
 
-  const handleReply = (index, replyContent) => {
+
+const handleRetweet = async (index) => {
+    const post = posts[index];
+    const response = await fetch(`${API_URL}/tweets/${post.id}/retweet`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ retweets: post.retweets }),
+    });
+    const data = await response.json();
+    const updatedPosts = [...posts];
+    updatedPosts[index] = { ...post, ...data };
+    setPosts(updatedPosts);
+};
+
+
+
+
+const handleReply = (index, replyContent) => {
     if (replyContent) {
       const updatedPosts = [...posts];
       updatedPosts[index].replies.push(replyContent);
